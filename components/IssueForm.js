@@ -1,15 +1,17 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useCallback } from "react";
 import { ProjectContext, UserContext } from "../lib/context";
 
 import { firestore, UseProjectIssueNames } from "../lib/firebase";
-import { collection } from "firebase/firestore";
+import { collection, getDocs, doc, query, where, setDoc, writeBatch } from "firebase/firestore";
 import { useCollectionData } from "react-firebase-hooks/firestore";
 
 import { Controller, useForm } from "react-hook-form";
 import Select from 'react-select';
+import debounce from 'lodash.debounce';
 
 export default function IssueForm() {
-    const [ formType, setFormType ] = useState('epic');
+    const [ formType, setFormType ] = useState('epics');
+    const [ isValid, setIsValid ] = useState(true);
     const { selectedProject } = useContext(ProjectContext);
     const { register, handleSubmit, control } = useForm();
     const { username } = useContext(UserContext);
@@ -50,39 +52,68 @@ export default function IssueForm() {
     ]
 
     function onChange(e) {
-        const val = e.target.value.toLowerCase();
+        const val = e.target.value;
         setFormType(val);
     }
 
-    const onSubmit = data => {
-        
-        if (formType === "epic"){
-            console.log("epic")
+    const checkIssueName = useCallback(
+        debounce(async (e, formType, selectedProject) => {
+            const val = e.target.value;
+            if (val.length >= 3) {
+                const issuesRef = collection(firestore, `${formType}`);
+                const Query = query(issuesRef, where('project link', '==', `${selectedProject}`), where('name', '==', `${val}`))
+                const querySnap = await getDocs(Query);
+                setIsValid(querySnap.empty)
+            }
+        }, 500),
+        []
+    );
+
+    const onSubmit = async (data) => {   
+
+        const batch = writeBatch(firestore)
+
+        const issueDoc = doc(firestore, `${formType}/${data.name}`)
+
+        batch.set(issueDoc, {name: data.name, summary: data.summary, desription: data.description, 
+            reporter: data.reporter, priority: data.priority[0].value, assignees: data.assignee[0].value, 
+            labels: data.label[0].value, sprint: data.sprint[0].value})
+
+        if (formType === "stories") {
+            batch.set(issueDoc, {name: data.name, summary: data.summary, desription: data.description, 
+                reporter: data.reporter, priority: data.priority[0].value, assignees: data.assignee[0].value, 
+                labels: data.label[0].value, sprint: data.sprint[0].value, epicLink: data.epic.value, taskLink: data.task[0].value})
+        } else if (formType === "tasks") {
+            batch.set(issueDoc, {name: data.name, summary: data.summary, desription: data.description, 
+                reporter: data.reporter, priority: data.priority[0].value, assignees: data.assignee[0].value, 
+                labels: data.label[0].value, sprint: data.sprint[0].value, storyLink: data.story[0].value})
         }
-        else if (formType === "story"){
-            console.log("story")
-        }
-        else if (formType === "task"){
-            console.log("task")
-        }
+
+        await batch.commit()
     }
+    
     return (
             <section>
                 <p>{ selectedProject }</p>
                 <form>
                 <label>Issue Type</label>
-                <select onChange={onChange}>
-                    <option value="epic">Epic</option>
-                    <option value="story">Story</option>
-                    <option value="task">Task</option>
+                <select onChange={(e) => onChange(e)}>
+                    <option value="epics">Epic</option>
+                    <option value="stories">Story</option>
+                    <option value="tasks">Task</option>
                 </select>
                 </form>
 
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <label>{formType.charAt(0).toLocaleUpperCase() + formType.slice(1)} Name</label>
-                    <input {...register(`${formType}`)}type="text" />
+                    <IssueNameMessage isValid={isValid}/>
+                    <input 
+                        type="text"
+                        {...register("name")}
+                        onChange={(e) => checkIssueName(e, formType, selectedProject)} 
+                        />
                     <label >Summary</label>
-                    <input {...register("Summary")} type="text" />
+                    <input {...register("summary")} type="text" />
                     <label >File attachment</label>
                     <input {...register("attachment")}type="file" />
                     <label >Description</label>
@@ -100,7 +131,7 @@ export default function IssueForm() {
                         }}
                     />
                     <label >Assignee</label>
-                    {/* <Controller
+                    <Controller
                         name="assignee"
                         control={control}
                         render={({ field }) => {
@@ -118,8 +149,8 @@ export default function IssueForm() {
                                 <Select options={labelOptions} isMulti {...field}/>
                             );
                         }}
-                    /> */}
-                    {/* <label >Sprints</label>
+                    />
+                    <label >Sprints</label>
                     <Controller
                         name="sprint"
                         control={control}
@@ -128,8 +159,8 @@ export default function IssueForm() {
                                 <Select options={sprintOptions} isMulti {...field} />
                             );
                         }}
-                    /> */}
-                    {/* {formType==="story" && (
+                    />
+                    {formType==="stories" && (
                     <>
                         <label htmlFor="">Link Epic</label>
                         <Controller
@@ -137,7 +168,7 @@ export default function IssueForm() {
                             control={control}
                             render={({ field }) => {
                                 return (
-                                    <Select options={epicOptions} isMulti {...field}/>
+                                    <Select options={epicOptions} {...field}/>
                                 );
                             }}
                         />
@@ -152,8 +183,8 @@ export default function IssueForm() {
                             }}
                         />
                     </>
-                    )} */}
-                    {formType==="task" && (
+                    )}
+                    {formType==="tasks" && (
                     <>
                         <label>Link Story</label>
                         <Controller
@@ -168,9 +199,17 @@ export default function IssueForm() {
                     </>
                     )}
 
-                    <input type="submit" />
+                    <input type="submit" disabled={!isValid} />
 
                 </form>
             </section>
     )
+}
+
+function IssueNameMessage({ isValid }) {
+    if (!isValid) {
+        return <p>Issue name taken</p>
+    } else if (isValid) {
+        return
+    }
 }

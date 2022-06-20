@@ -59,9 +59,10 @@ function UsernameForm() {
         const val = e.target.value.toLowerCase();
         const re = /^(?=[a-zA-Z0-9._]{3,15}$)(?!.*[_.]{2})[^_.].*[^_.]$/;
 
-        if (val >= 3){
+        if (val.length < 3){
             setFormValue(val);
             setIsValid(false);
+            console.log("ok")
             setLoading(false);
         }
 
@@ -81,25 +82,21 @@ function UsernameForm() {
     const checkUsername = useCallback(
         debounce(async (username) => {
             if (username.length >= 3) {
-                const docRef = doc(firestore, "usernames", username);
+                const docRef = doc(firestore, "usernames", `${username}`);
                 const docSnap = await getDoc(docRef);
-                if (!docSnap.exists()){
-                    console.log('Firestore read executed!');
-                    setLoading(false);
-                    setIsValid(true);
-                }
+                setLoading(false);
+                setIsValid(!docSnap.exists());
             }
         }, 500),
         []
-        );
-
+    );
 
     return (
         !username && (
             <section>
                 <h3>choose username</h3>
             <form onSubmit={onSubmit}>
-                <input input={formValue} onChange={onChange} />
+                <input name="username" placeholder="myname" input={formValue} onChange={onChange} />
                 <UsernameMessage username={formValue} isValid={isValid} loading={loading} />
                 <button type="submit" disabled={!isValid} loading={loading} >
                     choose

@@ -12,7 +12,6 @@ export default function ReactPortal({children, wrapperId = "react-portal-wrapper
     const [wrapperElement, setWrapperElement] = useState(null);
     
     useLayoutEffect(() => {
-        console.log("render")
         let element = document.getElementById(wrapperId);
         let systemCreated = false;
         
