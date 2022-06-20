@@ -1,7 +1,7 @@
 import { useState, useContext } from "react";
 import { ProjectContext, UserContext } from "../lib/context";
 
-import { firestore, getProjectIssueNames } from "../lib/firebase";
+import { firestore, UseProjectIssueNames } from "../lib/firebase";
 import { collection } from "firebase/firestore";
 import { useCollectionData } from "react-firebase-hooks/firestore";
 
@@ -14,10 +14,10 @@ export default function IssueForm() {
     const { register, handleSubmit, control } = useForm();
     const { username } = useContext(UserContext);
 
-    const epics = getProjectIssueNames(selectedProject, 'epics');
-    const stories = getProjectIssueNames(selectedProject, 'stories');
-    const tasks = getProjectIssueNames(selectedProject, 'tasks');
-    const sprints = getProjectIssueNames(selectedProject, 'sprints');
+    const epics = UseProjectIssueNames(selectedProject, 'epics');
+    const stories = UseProjectIssueNames(selectedProject, 'stories');
+    const tasks = UseProjectIssueNames(selectedProject, 'tasks');
+    const sprints = UseProjectIssueNames(selectedProject, 'sprints');
     
     const [ labeldocs ] = useCollectionData(collection(firestore, 'labels'));
     const labels = labeldocs?.map((doc) => doc.name);
