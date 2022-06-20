@@ -1,6 +1,7 @@
 import { useEffect, useRef  } from "react";
 import ReactPortal from "./ReactPortal";
 import { CSSTransition } from "react-transition-group";
+import IssueForm from "./IssueForm"
 
 export default function Modal({ children, isOpen, handleClose }) {
     const nodeRef = useRef(null);
@@ -23,6 +24,7 @@ export default function Modal({ children, isOpen, handleClose }) {
 			>
 				<div className="modal" ref={nodeRef}>
 					<div className="modal-content">
+                        <IssueForm />
                         <button onClick={handleClose} className="close-btn">
                             Close
                         </button>

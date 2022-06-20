@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { useContext, useState } from "react";
-import { UserContext } from '../lib/context';
+import { useContext } from "react";
+import { ProjectContext, UserContext } from '../lib/context';
 import { signOut } from "firebase/auth";
 import { useRouter } from 'next/router';
 import { auth } from "../lib/firebase";
 
-export default function Navbar({handleOpen}){
+export default function Navbar({handleOpen, handleSelectedProject}){
     const { user, username } = useContext(UserContext);
-
+    const { projectNames } = useContext(ProjectContext);
     const router = useRouter();
 
     const userSignOut = () => {
@@ -15,6 +15,21 @@ export default function Navbar({handleOpen}){
         router.reload();
     }
 
+    const onChange = (e) => {
+        const selectedProject = e.target.value.toLowerCase();
+
+        if (selectedProject !== 'new project') {
+            handleSelectedProject(selectedProject);
+        }
+        if (router.asPath !== '/') {
+            router.push('/');
+        } 
+        if (selectedProject === 'new project') {
+            router.push('/new-project');
+        }
+        
+    }
+    
     return (
         <nav>
             <ul>
@@ -22,6 +37,13 @@ export default function Navbar({handleOpen}){
                     <Link href="/">
                         <button>Home</button>
                     </Link>
+                </li>
+                <li>
+                    <select name="projects" id="projects" onChange={onChange}>
+                        {projectNames.projectNames.map(
+                            (projectname) => <option value={projectname}>{projectname}</option>)}
+                        <option value="new project">new project</option>
+                    </select>
                 </li>
             </ul>
             <ul>
