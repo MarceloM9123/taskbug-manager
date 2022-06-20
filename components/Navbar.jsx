@@ -41,7 +41,7 @@ export default function Navbar({handleOpen, handleSelectedProject}){
                 <li>
                     <select name="projects" id="projects" onChange={onChange}>
                         {projectNames.projectNames.map(
-                            (projectname) => <option value={projectname}>{projectname}</option>)}
+                            (projectname, index) => <option value={projectname} key={index}>{projectname}</option>)}
                         <option value="new project">new project</option>
                     </select>
                 </li>
